@@ -9,8 +9,8 @@ const app = express();
 app.use(compression());
 
 // Configure body-parser
-app.use(bodyParser.json({ limit: '2mb' }));
-app.use(bodyParser.urlencoded({ limit: '2mb', extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 // Configure AWS
 AWS.config.update({ region: 'us-east-2' });
@@ -30,7 +30,7 @@ app.post('/api/ecg-data', async (req, res) => {
     TableName: 'ECGMeasurements',
     Item: {
       userId: userId,
-      // measurementId: `${stage}-${Date.now()}`, // Add a unique identifier
+      measurementId: `${stage}-${Date.now()}`, // Add a unique identifier
       stage: stage,
       ecgVoltage: ecgVoltage,
       time: time
@@ -54,9 +54,17 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8081;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-server.timeout = 60000; // 60 seconds timeout
+server.timeout = 120000; // 120 seconds timeout
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});
